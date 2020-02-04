@@ -1,0 +1,115 @@
+// The Nature of Code
+// Daniel Shiffman
+// http://natureofcode.com
+// Landscape with height values according to Perlin noise
+
+import themidibus.*;
+float cc[] = new float[256];
+MidiBus myBus;
+
+Landscape land;    
+float theta = 0.0;
+float theta2 = 0.0;
+float theta3 = 0.0;
+
+void setup() {
+
+  size(3200, 2000, P3D);
+  background(255);
+
+  MidiBus.list();
+  myBus = new MidiBus(this, 0, 1);
+
+  land = new Landscape(40, 1800, 1400);
+}
+
+void draw() {
+
+  noiseDetail(int(cc[16]*8), cc[17]);
+  pushMatrix();
+  translate(width/2, height/2+20, map(cc[20],0,1,-8200,500));
+  rotateX(theta3);
+  rotateZ(theta);
+  rotateY(theta2);
+  land.render(); 
+  popMatrix();
+
+  land.calculate();
+
+  theta += cc[0]/10;
+  theta2 += cc[1]/10;
+  theta3 += cc[2]/10;
+}
+
+void controllerChange(int channel, int number, int value) {
+  println(number);
+  cc[number] = map(value, 0, 127, 0, 1);
+}
+
+void mousePressed() {
+ saveFrame("nOc_week_1_scrsht-####.png");
+}
+
+class Landscape {
+
+  int scl;           // size of each cell
+  int w, h;           // width and height of thingie
+  int rows, cols;    // number of rows and columns
+  float zoff = 0.0;  // perlin noise argument
+  float[][] z;       // using an array to store all the height values 
+
+  Landscape(int scl_, int w_, int h_) {
+    scl = scl_;
+    w = w_;
+    h = h_;
+    cols = w/scl;
+    rows = h/scl;
+    z = new float[cols][rows];
+  }
+
+  void calculate() {
+    float xoff = 0;
+    for (int i = 0; i < cols; i++)
+    { 
+      float yoff = 0;
+      for (int j = 0; j < rows; j++)
+      {
+        z[i][j] = map(noise(xoff, yoff,zoff), 0, 1, -120, 120);
+        yoff += 0.1;
+      }
+      xoff += 0.1;
+    }
+    zoff+=cc[19]/10;
+  }
+
+  void render() {
+    // Every cell is an individual quad
+    // (could use quad_strip here, but produces funny results, investigate this)
+    for (int x = 0; x < z.length-1; x++)
+    {
+      for (int y = 0; y < z[x].length-1; y++)
+      {
+        // one quad at a time
+        // each quad's color is determined by the height value at each vertex
+        // (clean this part up)
+        if(cc[7]>0.5){
+        stroke(0,cc[18]*255);
+        strokeWeight(cc[3]*5);
+        fill(255,cc[18]*255);
+        } else {
+        noFill();
+        noStroke();
+        }
+        pushMatrix();
+        beginShape(QUADS);
+        translate(x*(scl)-w/2, y*(scl)-h/2, 0);
+        vertex(0, 0, z[x][y]);
+        vertex(scl, 0, z[x+1][y]);
+        vertex(scl, scl, z[x+1][y+1]);
+        vertex(0, scl, z[x][y+1]);
+        endShape();
+        popMatrix();
+      }
+    }
+  }
+}

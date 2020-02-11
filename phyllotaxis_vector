@@ -1,0 +1,59 @@
+import themidibus.*;
+float cc[] = new float[256];
+MidiBus myBus;
+Mover mover;
+float nc=1;
+
+void setup() {
+  size(1000, 1000);
+  background(255);
+  mover = new Mover();
+  MidiBus.list();
+  myBus = new MidiBus(this, 0, 1);
+}
+
+void draw() {
+  mover.update();
+  mover.display();
+  nc+=1+int(cc[17]*3);
+}
+
+void controllerChange(int channel, int number, int value) {
+  println(number);
+  cc[number] = map(value, 0, 127, 0, 1);
+}
+
+void mousePressed() {
+  saveFrame("nOc_phyllo_scrsht-####.png");
+}
+
+class Mover {
+  PVector location;
+  PVector velocity;
+  PVector acceleration;
+  float topspeed;
+  float c;
+  float n;
+  Mover() {
+    location = new PVector(width/2, height/2);
+  }
+
+  void update() {
+    n =nc;
+    c = 1+cc[16]*16;
+    float x = c * sqrt(n) * cos( n *map(cc[18], 0, 1, 170, 180));
+    float y = c * sqrt(n) * sin( n *map(cc[18], 0, 1, 170, 180));
+    velocity = new PVector(x, y);
+    acceleration = new PVector(cc[0]+(-1*cc[1]), cc[2]+(-1*cc[3]));
+    acceleration.mult(1);
+    velocity.add(acceleration);
+    location.add(velocity);
+  }
+
+  void display() {
+    stroke(0);
+    strokeWeight(1);
+    fill(255);
+    ellipse(location.x, location.y, 18, 18);
+  }
+}

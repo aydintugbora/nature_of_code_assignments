@@ -1,0 +1,186 @@
+import themidibus.*;
+float cc[] = new float[256];
+MidiBus myBus;
+Mover[] movers = new Mover[3000];
+Attractor a;
+Repulser r;
+float ax, ay, rx, ry;
+
+void setup() {
+  size(2700, 1800);
+  background(255);
+  MidiBus.list();
+  myBus = new MidiBus(this, 0, 1);
+  for (int i = 0; i < movers.length; i++) {
+    movers[i] = new Mover(1, random(width), random(height));
+  }
+  a = new Attractor();
+  r = new Repulser();
+}
+
+void draw() {
+  if (cc[7]>0.5) {
+    fill(255, 5);
+  } else {
+    fill(255, 0);
+  }
+  rect(0, 0, width, height);
+  a.display();
+  a.update();
+  r.display();
+  r.update();
+  for (int i = 0; i < movers.length; i++) {
+    PVector force = a.attract(movers[i]);
+    movers[i].applyForce(force);
+    PVector force2 = r.repulse(movers[i]);
+    movers[i].applyForce2(force2);
+    movers[i].update();
+    movers[i].display();
+  }
+}
+
+void controllerChange(int channel, int number, int value) {
+  println(number);
+  cc[number] = map(value, 0, 127, 0, 1);
+}
+
+void mousePressed() {
+  saveFrame("nOc_exp_scrsht-####.png");
+}
+class Attractor {
+  float mass;    // Mass, tied to size
+  float G;       // Gravitational Constant
+  PVector location;   // Location
+  boolean dragging = false; // Is the object being dragged?
+  boolean rollover = false; // Is the mouse over the ellipse?
+  PVector dragOffset;  // holds the offset for when object is clicked on
+  PVector velocity = new PVector(0, 0);
+  Attractor() {
+    location = new PVector(900, height/2);
+    ax = location.x;
+    ay = location.x;
+    mass = 200;
+    G = 1;
+    dragOffset = new PVector(0.0, 0.0);
+  }
+
+  PVector attract(Mover m) {
+    PVector force = PVector.sub(location, m.location);   // Calculate direction of force
+    float d = force.mag();                              // Distance between objects
+    d = constrain(d, 5.0, 25.0);                        // Limiting the distance to eliminate "extreme" results for very close or very far objects
+    force.normalize();                                  // Normalize vector (distance doesn't matter here, we just want this vector for direction)
+    float strength = (G * mass * m.mass) / (d * d);      // Calculate gravitional force magnitude
+    force.mult(cc[0]*strength+cc[16]*-strength);                                  // Get force vector --> magnitude * direction
+    return force;
+  }
+
+  // Method to display
+  void display() {
+    ellipseMode(CENTER);
+    strokeWeight(4);
+    stroke(0, 11);
+    fill(cc[0]*255, cc[16]*255, 0);
+    ellipse(location.x, location.y, mass/4, mass/4);
+    location.x = map(cc[18], 0, 1, 0, width);
+    location.y = map(cc[2], 1, 0, 0, height);
+  }
+  void update() {
+    PVector acceleration = new PVector(0, 0);
+    velocity.add(acceleration);
+    velocity.limit(5);
+    location.add(velocity);
+  }
+}
+class Repulser {
+  float mass;    // Mass, tied to size
+  float G;       // Gravitational Constant
+  PVector location;   // Location
+  boolean dragging = false; // Is the object being dragged?
+  boolean rollover = false; // Is the mouse over the ellipse?
+  PVector dragOffset;  // holds the offset for when object is clicked on
+  PVector velocity = new PVector(0, 0);
+  Repulser() {
+    location = new PVector(1800, height/2);
+    rx = location.x;
+    ry = location.x;
+    mass = 200;
+    G =1;
+    dragOffset = new PVector(0.0, 0.0);
+  }
+
+  PVector repulse(Mover m) {
+    PVector force2 = PVector.sub(location, m.location);   // Calculate direction of force
+    float d = force2.mag();                              // Distance between objects
+    d = constrain(d, 5.0, 25.0);                        // Limiting the distance to eliminate "extreme" results for very close or very far objects
+    force2.normalize();                                  // Normalize vector (distance doesn't matter here, we just want this vector for direction)
+    float strength = (G * mass * m.mass) / (d * d);      // Calculate gravitional force magnitude
+    force2.mult(cc[1]*strength+cc[17]*-strength);                                  // Get force vector --> magnitude * direction
+    return force2;
+  }
+
+  void display() {
+    ellipseMode(CENTER);
+    strokeWeight(4);
+    stroke(0, 11);
+    fill(cc[1]*255, cc[17]*255, 0);
+    ellipse(location.x, location.y, mass/4, mass/4);
+    location.x = map(cc[19], 0, 1, 0, width);
+    location.y = map(cc[3], 1, 0, 0, height);
+  }
+
+  void update() {
+    PVector acceleration = new PVector(0, 0);
+    velocity.add(acceleration);
+    velocity.limit(5);
+    location.add(velocity);
+  }
+}
+class Mover {
+  PVector location;
+  PVector velocity;
+  PVector acceleration;
+  float mass;
+  float dc;
+  Mover(float m, float x, float y) {
+    mass = m;
+    location = new PVector(x, y);
+    velocity = new PVector(0, 0);
+    acceleration = new PVector(0, 0);
+  }
+
+  void applyForce(PVector force) {
+    PVector f = PVector.div(force, mass);
+    acceleration.add(f);
+  }
+
+  void applyForce2(PVector force2) {
+    PVector f = PVector.div(force2, mass);
+    acceleration.add(f);
+  }
+
+  void update() {
+    velocity.add(acceleration);
+    location.add(velocity);
+    velocity.limit(5);
+    acceleration.mult(0);
+    if (location.x > width) {
+      location.x = 0;
+    } else if (location.x < 0) {
+      location.x = width;
+    }
+    if (location.y > height) {
+      location.y = 0;
+    } else if (location.y < 0) {
+      location.y = height;
+    }
+  }
+
+  void display() {
+    stroke(0, 111);
+    strokeWeight(1);
+    float da = map(dist(location.x, location.y, ax, ay), 0, 1500, 0, 222);
+    float dr = map(dist(location.x, location.y, rx, ry), 0, 1500, 0, 222);
+    fill(dr, da, map(velocity.x, 0, 5, 255, 0));
+    ellipse(location.x, location.y, mass*12, mass*12);
+  }
+}

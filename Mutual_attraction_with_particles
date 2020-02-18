@@ -119,22 +119,22 @@ class Attractor {
   }
 
   PVector attract(Attractor a) {
-    PVector force = PVector.sub(location, a.location);   // Calculate direction of force
-    float d = force.mag();                              // Distance between objects
-    d = constrain(d, 5.0, 25.0);                        // Limiting the distance to eliminate "extreme" results for very close or very far objects
-    force.normalize();                                  // Normalize vector (distance doesn't matter here, we just want this vector for direction)
-    float strength = (G * mass * a.mass) / (d * d);      // Calculate gravitional force magnitude
-    force.mult(strength*osc);                                  // Get force vector --> magnitude * direction
+    PVector force = PVector.sub(location, a.location);   
+    float d = force.mag();                              
+    d = constrain(d, 5.0, 25.0);                        
+    force.normalize();                                  
+    float strength = (G * mass * a.mass) / (d * d);      
+    force.mult(strength*osc);                                
     return force;
   }
 
   PVector attract(Mover m) {
-    PVector force2 = PVector.sub(location, m.location);   // Calculate direction of force
-    float d = force2.mag();                              // Distance between objects
-    d = constrain(d, 5.0, 25.0);                        // Limiting the distance to eliminate "extreme" results for very close or very far objects
-    force2.normalize();                                  // Normalize vector (distance doesn't matter here, we just want this vector for direction)
-    float strength = (G * mass * m.mass) / (d * d);      // Calculate gravitional force magnitude
-    force2.mult(strength*osc);                                  // Get force vector --> magnitude * direction
+    PVector force2 = PVector.sub(location, m.location);   
+    float d = force2.mag();                             
+    d = constrain(d, 5.0, 25.0);                       
+    force2.normalize();                                  
+    float strength = (G * mass * m.mass) / (d * d);    
+    force2.mult(strength*osc);                               
     return force2;
   }
 }

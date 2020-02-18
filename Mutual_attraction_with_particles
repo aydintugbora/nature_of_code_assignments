@@ -1,0 +1,191 @@
+import themidibus.*;
+float cc[] = new float[256];
+MidiBus myBus;
+
+Attractor[] attractors = new Attractor[4];
+Mover[] movers = new Mover[800];
+
+void setup() {
+  size(2700, 1800);
+  background(255);
+  smooth();
+  MidiBus.list();
+  myBus = new MidiBus(this, 0, 1);
+  for (int i = 0; i < attractors.length; i++) {
+    //attractors[i] = new Attractor(random(0.0001,0.001), 34, random(width), random(height));
+    attractors[i] = new Attractor(random(0.0001, 0.01), 44, random(width), random(height));
+  }
+  for (int i = 0; i < movers.length; i++) {
+    movers[i] = new Mover(1, random(width), random(height));
+  }
+}
+
+void draw() {
+  if (cc[32]>0) {
+    setup();
+  }
+  for (int i = 0; i < attractors.length; i++) {
+    for (int j = 0; j < attractors.length; j++) {
+      if (i != j) {
+        PVector force = attractors[j].attract(attractors[i]);
+        attractors[i].applyForce(force);
+      }
+    }
+    attractors[i].update();
+    attractors[i].display();
+  }
+  for (int i = 0; i < movers.length; i++) {
+    for (int j = 0; j < attractors.length; j++) {
+      PVector force2 = attractors[j].attract(movers[i]);    
+      movers[i].applyForce(force2);
+      movers[i].update();
+      movers[i].display();
+    }
+  }
+}
+
+void controllerChange(int channel, int number, int value) {
+  println(number);
+  cc[number] = map(value, 0, 127, 0, 1);
+}
+
+void mousePressed() {
+  saveFrame("nOc_exp_scrsht-####.png");
+}
+class Attractor {
+  float a = 0;
+  float aInc;
+  float osc;
+  float oscR;
+  float oscG;
+  PVector location;
+  PVector velocity;
+  PVector acceleration;
+  float G;
+  float mass;
+  float dc;
+  Attractor(float angC, float m, float x, float y) {
+    aInc = angC;
+    mass = m;
+    location = new PVector(x, y);
+    velocity = new PVector(0, 0);
+    acceleration = new PVector(0, 0);
+    G = 1;
+  }
+
+  void applyForce(PVector force) {
+    PVector f = PVector.div(force, mass);
+    acceleration.add(f);
+  }
+
+  void update() {
+    osc = cos(a);
+    oscG = cos(a) *255;
+    oscR = map(cos(a), -1, 1, 255, 0);
+    velocity.add(acceleration);
+    location.add(velocity);
+    velocity.limit(1);
+    acceleration.mult(0);
+    a+=aInc;
+    if (location.x > width+40) {
+      location.x = -40;
+      //location.x = width;
+      //velocity.x *= -1;
+    } else if (location.x < -40) {
+      location.x = width+40;
+      //location.x = 0;
+      //velocity.x *= -1;
+    }
+
+    if (location.y > height+40) {
+      location.y = 0-40;
+      //velocity.y *= -1;
+      //location.y = height;
+    } else if (location.y < 0-40) {
+      location.y = height+40;
+      //velocity.y *= -1;
+      //location.y = 0;
+    }
+  }
+
+  void display() {
+    stroke(0, 111);
+    strokeWeight(1);
+    //noFill();
+    //noStroke();
+
+    fill(oscG);
+    ellipse(location.x, location.y, mass*5*osc, mass*5*osc);
+  }
+
+  PVector attract(Attractor a) {
+    PVector force = PVector.sub(location, a.location);   // Calculate direction of force
+    float d = force.mag();                              // Distance between objects
+    d = constrain(d, 5.0, 25.0);                        // Limiting the distance to eliminate "extreme" results for very close or very far objects
+    force.normalize();                                  // Normalize vector (distance doesn't matter here, we just want this vector for direction)
+    float strength = (G * mass * a.mass) / (d * d);      // Calculate gravitional force magnitude
+    force.mult(strength*osc);                                  // Get force vector --> magnitude * direction
+    return force;
+  }
+
+  PVector attract(Mover m) {
+    PVector force2 = PVector.sub(location, m.location);   // Calculate direction of force
+    float d = force2.mag();                              // Distance between objects
+    d = constrain(d, 5.0, 25.0);                        // Limiting the distance to eliminate "extreme" results for very close or very far objects
+    force2.normalize();                                  // Normalize vector (distance doesn't matter here, we just want this vector for direction)
+    float strength = (G * mass * m.mass) / (d * d);      // Calculate gravitional force magnitude
+    force2.mult(strength*osc);                                  // Get force vector --> magnitude * direction
+    return force2;
+  }
+}
+class Mover {
+  PVector location;
+  PVector velocity;
+  PVector acceleration;
+  float mass;
+  float dc;
+  Mover(float m, float x, float y) {
+    mass = m;
+    location = new PVector(x, y);
+    velocity = new PVector(0, 0);
+    acceleration = new PVector(0, 0);
+  }
+
+  void applyForce(PVector force2) {
+    PVector f = PVector.div(force2, mass);
+    acceleration.add(f);
+  }
+
+  void update() {
+    velocity.add(acceleration);
+    location.add(velocity);
+    velocity.limit(0.3);
+    acceleration.mult(0);
+    if (location.x > width+40) {
+      location.x = -40;
+      //location.x = width;
+      //velocity.x *= -1;
+    } else if (location.x < -40) {
+      location.x = width+40;
+      //location.x = 0;
+      //velocity.x *= -1;
+    }
+
+    if (location.y > height+40) {
+      location.y = 0-40;
+      //velocity.y *= -1;
+      //location.y = height;
+    } else if (location.y < 0-40) {
+      location.y = height+40;
+      //velocity.y *= -1;
+      //location.y = 0;
+    }
+  }
+
+  void display() {
+    stroke(0, 11);
+    strokeWeight(1);
+    fill(255, 15);
+    ellipse(location.x, location.y, 11*mass, 11*mass);
+  }
+}

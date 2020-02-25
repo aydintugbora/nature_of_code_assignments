@@ -1,0 +1,207 @@
+float repX, repY;
+ParticleSystem ps;
+Repeller repeller;
+
+void setup() {
+  //blendMode(BLEND);
+  size(3200, 2000);
+  
+  background(255);
+
+  ps = new ParticleSystem(1000, 100, 10);
+  repeller = new Repeller(width/2, height/2);
+}
+
+void draw() {
+  fill(255,3);
+  rect(width/2,height/2,width,height);
+  ps.applyRepeller(repeller);
+
+  repeller.display();
+  ps.display();
+  ps.update();
+  if ( keyPressed) {
+  if (key == 'p' || key == 'P') {
+    saveFrame("nOc_exp_scrsht-####.png");
+  }
+}
+}
+
+void mousePressed() {
+  ps.shatter();
+}
+
+class Particle {
+  PVector location;
+  PVector velocity;
+  PVector acceleration;
+  float lifespan;
+  float mass = 2; // Let's do something better here!
+  float r;
+  float n;
+  float nC;
+  Particle(float x, float y, float r_) {
+    acceleration = new PVector(0,0.01);
+    //velocity = PVector.random2D();
+    velocity = PVector.random2D();
+        velocity = new PVector(random(-1,1),random(-1,1));
+
+    velocity.mult(0.00001);
+    location = new PVector(x,y);
+    lifespan = 255.0;
+    r = r_;
+    n=(random(0,333));
+    nC = random(0.05,0.2);
+  }
+
+  void run() {
+    update();
+    display();
+  }
+   void applyForce(PVector force) {
+    PVector f = force.get();
+    f.div(mass);   
+    acceleration.add(f);
+  }
+
+  // Method to update location
+  void update() {
+    velocity.add(acceleration);
+    location.add(velocity);
+    velocity.limit(11);
+    lifespan -= 2.0;
+    n += nC;
+  }
+
+  // Method to display
+  void display() {
+    stroke(0);
+    strokeWeight(0.7);
+    //fill(map(acceleration.y,0,-0.3,99,255),map(acceleration.y,0,0.3,99,255),159);
+        fill(255);
+
+    rectMode(CENTER);
+    //rect(location.x,location.y,r-(noise(n)*15),r-(noise(n)*15));
+        rect(location.x,location.y,r,r);
+
+    if(r<0){stroke(0,0);}
+  }
+  void checkEdges() {
+
+    if (location.x > width) {
+      location.x = width;
+      velocity.x *= -0.8;
+    } else if (location.x < 0) {
+      velocity.x *= -0.8;
+      location.x = 0;
+    }
+
+    if (location.y > height) {
+      velocity.y *= -0.8;
+      location.y = height;
+    }else if (location.y < 0) {
+      velocity.y *= -0.8;
+      location.y = 0;
+    }
+
+  }
+  
+  // Is the particle still useful?
+  boolean isDead() {
+    if (lifespan < 0.0) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
+
+
+class ParticleSystem {
+  ArrayList<Particle> particles;
+
+  int rows = 120;
+  int cols = 120;
+
+  boolean intact = true;
+
+  ParticleSystem(float x, float y, float r) {
+    particles = new ArrayList<Particle>();
+
+    for (int i = 0; i < rows*cols; i++) {
+      addParticle(x + (i%cols)*r, y + (i/rows)*r, r);
+    }
+  }
+
+  void addParticle(float x, float y, float r) {
+    particles.add(new Particle(x, y, r));
+  }
+    // A function to apply a force to all Particles
+  void applyForce(PVector f) {
+    for (Particle p: particles) {
+      p.applyForce(f);
+    }
+  }
+
+  void applyRepeller(Repeller r) {
+    for (Particle p: particles) {
+      PVector force = r.repel(p);        
+      p.applyForce(force);
+    }
+  }
+
+  void display() {
+    for (Particle p : particles) {
+      p.display();
+    }
+  }
+
+  void shatter() {
+    intact = false;
+  }
+
+  void update() {
+    if (!intact) {
+      for (Particle p : particles) {
+        p.update();
+        p.checkEdges();
+      }
+    }
+  }
+}
+
+
+class Repeller {
+
+  // Gravitational Constant
+  float G = -0.01;
+  // Location
+  PVector location;
+  float r = 1;
+
+  Repeller(float x, float y) {
+    location = new PVector(x, y);
+  }
+
+  void display() {
+    stroke(0);
+    strokeWeight(2);
+    fill(222,45,56);
+    ellipse(location.x, location.y, 148, 148);
+    repX = location.x;
+    repY = location.y;
+  }
+
+  // Calculate a force to push particle away from repeller
+  PVector repel(Particle p) {
+    //G=map(cc[16], 0, 1, -10, 10);
+    PVector dir = PVector.sub(location, p.location);      // Calculate direction of force
+    float d = dir.mag();                       // Distance between objects
+    dir.normalize();                           // Normalize vector (distance doesn't matter here, we just want this vector for direction)
+    d = constrain(d, 5, 100);                    // Keep distance within a reasonable range
+    float force = -0.5 * G / (d * d);            // Repelling force is inversely proportional to distance
+    dir.mult(force);                           // Get force vector --> magnitude * direction
+    return dir;
+  }
+}
+
